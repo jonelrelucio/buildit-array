@@ -16,8 +16,19 @@ void test_program(builder::dyn_var<int*> arr1, int dim1, int dim2, int dim3) {
 	w = 1;
 
 	// Compute Z + W and store it in Y
-	y = z + w;
+	
+	// y = z + w;
 
+
+	// for (int i = 0; i < 10; ++i) {
+	// 	y = z + w; 
+	// 	w = y;
+	// }
+	z.to_device();
+	w.to_device();
+	barray::run_on_gpu([&]() {
+        y = z + w;
+    });
 }
 
 

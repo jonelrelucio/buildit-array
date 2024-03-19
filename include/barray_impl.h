@@ -121,9 +121,16 @@ struct barray {
 		indices.push_back(i.addr());
 
 		// TODO 5: Map loop nests to GPU if current device is GPU
+		if (current_device == DEVICE_GPU) {
+			builder::annotate(CUDA_KERNEL);
+		}
 
 		// TODO 2: Recursively induce loops for all dimensions
-		induce_loop_at(indices, rhs);
+		for (builder::dyn_var<int> i = 0; i < m_sizes[index]; i=i+1) {
+			std::vector<builder::dyn_var<int>*> updated_indices = indices; 
+			updated_indices[index] = i.addr(); 
+			induce_loop_at(updated_indices, rhs);
+		}
 	}
 
 	// Assignment operator overloads
@@ -138,8 +145,13 @@ struct barray {
 		int total_size = get_total_size();
 
 		// TODO 1: Initialize all elements of the array to value
-		
+		//for (builder::dyn_var<int> i = 0; i < total_size; i=i+1) {
+		//	m_arr[i] = value;
+		//}
+
 		// TODO 4: Optimize arrays initialized to constants
+		is_constant = true;
+		constant_val = value;
 		current_storage = DEVICE_HOST;
 
 	}
@@ -195,8 +207,15 @@ struct barray_expr_array: public barray_expr<T>{
 
 	const builder::dyn_var<T> get_value_at(std::vector<builder::dyn_var<int>*> indices) const {
 		// TODO 6: Make sure the array is on the GPU if requested from GPU
+		if (current_device == DEVICE_GPU){
+			assert(this->m_array.current_storage == DEVICE_GPU && "current storage is not DEVICE_GPU");
+		}
 
 		// TODO 4.2: Optimize arrays initialized to constants
+		if (this->m_array.is_constant) {
+			return this->m_array.constant_val;
+		}
+
 		if (current_device == DEVICE_HOST)
 			return const_cast<builder::dyn_var<T*>&>(m_array.m_arr)[m_array.compute_flat_index(indices)];
 		else
